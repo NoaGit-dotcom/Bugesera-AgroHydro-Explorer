@@ -1,0 +1,111 @@
+{
+  "gee_datasets": [
+    {
+      "id": 1,
+      "name": "Global Surface Water Occurrence",
+      "dataset_id": "JRC/GSW1_4/GlobalSurfaceWater",
+      "description": "Global surface water occurrence data",
+      "visualization": {
+        "bands": ["occurrence"],
+        "min": 0.0,
+        "max": 100.0,
+        "palette": ["ffffff", "ffbbbb", "0000ff"]
+      },
+      "map_center": {
+        "lon": 59.414,
+        "lat": 45.182,
+        "zoom": 6
+      },
+      "layer_name": "Occurrence"
+    },
+    {
+      "id": 2,
+      "name": "HydroSHEDS Drainage Direction",
+      "dataset_id": "WWF/HydroSHEDS/15DIR",
+      "description": "Drainage direction data from HydroSHEDS",
+      "band": "b1",
+      "visualization": {
+        "min": 1.0,
+        "max": 128.0,
+        "palette": [
+          "000000", "023858", "006837", "1a9850", "66bd63", "a6d96a", "d9ef8b",
+          "ffffbf", "fee08b", "fdae61", "f46d43", "d73027"
+        ]
+      },
+      "map_center": {
+        "lon": -121.652,
+        "lat": 38.022,
+        "zoom": 8
+      },
+      "layer_name": "Drainage Direction"
+    },
+    {
+      "id": 3,
+      "name": "Landsat 8 Surface Reflectance",
+      "dataset_id": "LANDSAT/LC08/C02/T1_L2",
+      "description": "Landsat 8 Collection 2 Level 2 surface reflectance data",
+      "filter_date": {
+        "start": "2021-05-01",
+        "end": "2021-06-01"
+      },
+      "processing": {
+        "optical_bands_scale": 0.0000275,
+        "optical_bands_offset": -0.2,
+        "thermal_bands_scale": 0.00341802,
+        "thermal_bands_offset": 149.0
+      },
+      "visualization": {
+        "bands": ["SR_B4", "SR_B3", "SR_B2"],
+        "min": 0.0,
+        "max": 0.3
+      },
+      "map_center": {
+        "lon": -114.2579,
+        "lat": 38.9275,
+        "zoom": 8
+      },
+      "layer_name": "True Color (432)"
+    },
+    {
+      "id": 4,
+      "name": "SRTM Elevation and Slope",
+      "dataset_id": "USGS/SRTMGL1_003",
+      "description": "SRTM digital elevation data and derived slope",
+      "band": "elevation",
+      "processing": "Terrain slope calculation",
+      "visualization": {
+        "min": 0,
+        "max": 60
+      },
+      "map_center": {
+        "lon": -112.8598,
+        "lat": 36.2841,
+        "zoom": 10
+      },
+      "layer_name": "slope"
+    },
+    {
+      "id": 5,
+      "name": "GAUL Administrative Boundaries",
+      "dataset_id": "FAO/GAUL_SIMPLIFIED_500m/2015/level2",
+      "description": "Second level administrative units from FAO GAUL",
+      "type": "FeatureCollection",
+      "styling": {
+        "fillColor": "b5ffb4",
+        "color": "00909F",
+        "width": 1.0
+      },
+      "map_center": {
+        "lon": 12.876,
+        "lat": 42.682,
+        "zoom": 5
+      },
+      "layer_name": "Second Level Administrative Units"
+    }
+  ],
+  "metadata": {
+    "source": "Google Earth Engine",
+    "data_types": ["Image", "ImageCollection", "FeatureCollection"],
+    "total_datasets": 5
+  }
+}
