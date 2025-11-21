@@ -1,144 +1,1083 @@
-{
-  "imports": {
-    "gsw": "ee.Image('JRC/GSW1_4/GlobalSurfaceWater')",
-    "riverNetwork": "ee.Image('projects/manifest-welder-470408-q6/assets/River_Network')",
-    "LST_2024_SC": "ee.Image('projects/manifest-welder-470408-q6/assets/LST_2024_SC')",
-    "Bugesera": "ee.FeatureCollection('projects/manifest-welder-470408-q6/assets/Bugesera')",
-    "Bugesera_G": "ee.FeatureCollection('projects/manifest-welder-470408-q6/assets/Bugesera_G')",
-    "dem": "ee.Image('USGS/SRTMGL1_003')"
-  },
-  "mapSetup": {
-    "options": "'SATELLITE'",
-    "centerObject": "Bugesera_G",
-    "zoom": 9,
-    "cursor": "'crosshair'"
-  },
-  "initialLayers": [
-    {
-      "name": "ext2017",
-      "code": "ui.Map.Layer(gsw.select('occurrence').clip(Bugesera), {min:0, max:100}, 'Water Occurrence', false)"
-    },
-    {
-      "name": "rvNetwork",
-      "code": "ui.Map.Layer(riverNetwork, {min:1, max:255}, 'River Network', false)"
-    },
-    {
-      "name": "LST2024",
-      "code": "ui.Map.Layer(LST_2024_SC, {min:20, max:50}, 'Land Surface Temperature', false)"
-    }
-  ],
-  "uiPanel": {
-    "header": "ui.Label('Bugesera Season C Spatial Sampling & Irrigation Suitability Mapping Tool: A Geospatial Decision-Support Tool for Season C Agriculture: A Geospatial Decision-Support Tool for Season C Agriculture', {fontSize: '25px', fontWeight: 'bold', color: '4A997E'})",
-    "text": "ui.Label('The Bugesera AgroHydro Explorer is an interactive GIS tool for irrigation planning and agricultural survey data collection in Bugesera District. It integrates water maps, river networks, land surface temperature (LST), slope, and irrigation suitability to identify areas with high potential for Season C crop production.', {fontSize: '15px'})",
-    "panel": "ui.Panel({widgets:[header, text], style:{width:'300px', position:'middle-right'}})",
-    "intro": "ui.Panel([ui.Label({value: '____________________________________________', style:{fontWeight:'bold', color:'4A997E'}}), ui.Label({value:'Select layers to display.', style:{fontSize:'15px', fontWeight:'bold'}})])"
-  },
-  "widgets": {
-    "extLabel": "ui.Label({value:'AgroHydro Explorer', style:{fontWeight:'bold', fontSize:'16px', margin:'10px 5px'}})",
-    "extCheck": "ui.Checkbox('Water Occurrence 2017').setValue(false)",
-    "extCheck2": "ui.Checkbox('Estimated Water 2024').setValue(false)",
-    "extCheck3": "ui.Checkbox('River Network').setValue(false)",
-    "extCheck4": "ui.Checkbox('LST 2024').setValue(false)",
-    "heightLab": "ui.Label({value:'Land surface temperature', style: {fontWeight: 'bold', fontSize: '16px', margin: '10px 5px'}})",
-    "extCheck4_dup": "ui.Checkbox('LST in season C_2024').setValue(false)"
-  },
-  "legends": {
-    "extentLegend": {
-      "position": "bottom-left",
-      "padding": "8px 15px",
-      "palette": ["ffffff", "0000ff", "0000ff"],
-      "names": ["water in 2017", "Water in 2024", "River Network"]
-    },
-    "LST_vis": {
-      "min": 20,
-      "max": 50,
-      "palette": ["#0000ff", "#00ff00", "#ffff00", "ffa500", "#ff0000"]
-    }
-  },
-  "waterAnalysis": {
-    "water2017": "gsw.select('occurrence').gt(50).clip(Bugesera)",
-    "waterChange": "gsw.select('change_abs').gt(20).clip(Bugesera)",
-    "water2024": "water2017.or(waterChange)",
-    "ext2024": "ui.Map.Layer(water2024, {min:0, max:1, palette:['white','blue']}, 'Estimated Water 2024', false)"
-  },
-  "areaCalculations": {
-    "water2017_area": "water2017.multiply(ee.Image.pixelArea()).divide(10000).reduceRegion({reducer: ee.Reducer.sum(), geometry: Bugesera, scale: 30, maxPixels: 1e13}).get('occurrence')",
-    "water2024_area": "water2024.multiply(ee.Image.pixelArea()).divide(10000).reduceRegion({reducer: ee.Reducer.sum(), geometry: Bugesera, scale: 30, maxPixels: 1e13}).get('occurrence')"
-  },
-  "charts": {
-    "waterStats": "ee.FeatureCollection([ee.Feature(null, {'Year': 2017, 'Area_ha': water2017_area}), ee.Feature(null, {'Year': 2024, 'Area_ha': water2024_area})])",
-    "waterChart": "ui.Chart.feature.byFeature({features: waterStats, xProperty: 'Year', yProperties: ['Area_ha']}).setChartType('ColumnChart').setOptions({title: 'Water Extent in Bugesera (2017 vs 2024)', hAxis: {title: 'Year'}, vAxis: {title: 'Water Area (ha)'}, legend: {position: 'none'}, colors: ['#0000ff']})",
-    "waterChartPanel": "ui.Panel([waterChart], null, {stretch: 'horizontal'})",
-    "chartCheck": "ui.Checkbox({label: 'Show Water Extent Change Chart (2017-2024)', value: false})",
-    "chartSelector": "ui.Select({items: ['Water Extent Change (2017-2024)'], value: 'Water Extent Change (2017-2024)', onChange: function(selection) { waterChartPanel.clear(); if (selection === 'Water Extent Change (2017-2024)') { waterChartPanel.add(waterChart); } }})"
-  },
-  "temperatureAnalysis": {
-    "modisLST": "ee.ImageCollection('MODIS/061/MOD11A2').filterDate('2024-06-01', '2024-08-31').filterBounds(Bugesera).select('LST_Day_1km')",
-    "modisLST_C": "modisLST.map(function(img) { return img.multiply(0.02).subtract(273.15).copyProperties(img, ['system:time_start']); })",
-    "lstStats": "modisLST_C.map(function(img) { var meanDict = img.reduceRegion({ reducer: ee.Reducer.mean(), geometry: Bugesera, scale: 1000, maxPixels: 1e13 }); return ee.Feature(null, { 'date': ee.Date(img.get('system:time_start')).format('YYYY-MM-dd'), 'LST (°C)': meanDict.get('LST_Day_1km') }); })",
-    "lstChart": "ui.Chart.feature.byFeature({ features: lstStats, xProperty: 'date', yProperties: ['LST (°C)'] }).setChartType('LineChart').setOptions({ title: 'Mean Land Surface Temperature (Bugesera, Jun–Aug 2024)', hAxis: {title: 'Date'}, vAxis: {title: 'Temperature (°C)'}, legend: {position: 'none'}, colors: ['#e6550d'] })",
-    "lstChartPanel": "ui.Panel([lstChart], null, {stretch: 'horizontal'})",
-    "lstChartCheck": "ui.Checkbox({ label: 'Show LST Change Chart (Jun–Aug 2024)', value: false })"
-  },
-  "slopeAnalysis": {
-    "slope": "ee.Terrain.slope(dem).clip(Bugesera)",
-    "slopeSuit": "slope.expression('1 - b(0) / 30').clamp(0,1)",
-    "slopeVis": "{min: 0, max: 30, palette: ['#00ff00', '#ffff00', '#ff0000']}",
-    "slopeLayer": "ui.Map.Layer(slope, slopeVis, 'Slope (degrees)', false)",
-    "slopeCheck": "ui.Checkbox('Slope').setValue(false)"
-  },
-  "slopeLegend": {
-    "slopePalette": ["#00ff00", "#ffff00", "#ff0000"],
-    "slopeNames": ["Flat (0–10°)", "Moderate (10–20°)", "Steep (>20°)"]
-  },
-  "irrigationSuitability": {
-    "slopeFilled": "slopeSuit.unmask(0)",
-    "riverMask": "riverNetwork.gt(0).selfMask()",
-    "riverDist": "riverMask.fastDistanceTransform(30).sqrt()",
-    "riverSuit": "riverDist.expression('1 - b(0) / 5000').clamp(0, 1).clip(Bugesera)",
-    "riverFilled": "riverSuit.unmask(0)",
-    "LST_norm": "LST_2024_SC.unitScale(20, 50).clip(Bugesera)",
-    "LST_suit": "LST_norm.expression('1 - b(0)').clamp(0, 1)",
-    "LSTfilled": "LST_suit.unmask(0.5)",
-    "suitability": "slopeFilled.multiply(0.4).add(riverFilled.multiply(0.35)).add(LSTfilled.multiply(0.25)).rename('suitability').clip(Bugesera)",
-    "minMax": "suitability.reduceRegion({ reducer: ee.Reducer.minMax(), geometry: Bugesera, scale: 30, maxPixels: 1e13 })",
-    "suitabilityClass": "ee.Image( ee.Algorithms.If( maxVal.gt(minVal), suitability.expression( '1 + floor((value - min) / step)', { value: suitability, min: minVal, step: maxVal.subtract(minVal).divide(5) } ).clamp(1, 5).int(), ee.Image.constant(3) ) ).rename('suitability_class').clip(Bugesera)",
-    "suitabilityVis": "{ min: 1, max: 5, palette: ['#800000', '#ff0000', '#ffff00', '#90ee90', '#006400'] }"
-  },
-  "suitabilityLegend": {
-    "suitPalette": ["#800000", "#ff0000", "#ffff00", "#90ee90", "#006400"],
-    "suitNames": ["Permanently not suitable", "Temporarily not suitable", "Marginally suitable", "Moderately suitable", "Highly suitable"]
-  },
-  "areaStatistics": {
-    "areaImage": "ee.Image.cat( ee.Image.pixelArea().divide(10000), suitabilityClass ).rename(['area_ha', 'suitability_class'])",
-    "classAreas": "areaImage.reduceRegion({ reducer: ee.Reducer.sum().group({ groupField: 1, groupName: 'class_id' }), geometry: Bugesera, scale: 30, maxPixels: 1e13 })",
-    "areaGroups": "ee.List(classAreas.get('groups'))",
-    "areaTable": "ee.FeatureCollection(areaGroups.map(function(g) { g = ee.Dictionary(g); return ee.Feature(null, { 'Class ID': ee.Number(g.get('class_id')).int(), 'Area (ha)': ee.Number(g.get('sum')) }); }))",
-    "classNames": {
-      "1": "Permanently not suitable",
-      "2": "Temporarily not suitable",
-      "3": "Marginally suitable",
-      "4": "Moderately suitable",
-      "5": "Highly suitable"
-    }
-  },
-  "sampling": {
-    "nPoints": 20,
-    "samplePoints": "suitabilityClass.stratifiedSample({ numPoints: nPoints, classBand: 'suitability_class', region: Bugesera, scale: 30, seed: 42, geometries: true })",
-    "sampleLayer": "ui.Map.Layer(samplePoints, {color: 'red'}, 'Survey Sample Points', false)",
-    "sampleCheck": "ui.Checkbox('Survey Sampling Frame').setValue(false)",
-    "buildSurveyTable": "function() { return suitabilityClass.stratifiedSample({ numPoints: 20, classBand: 'suitability_class', region: Bugesera, scale: 30, seed: 42, geometries: true }); }"
-  },
-  "export": {
-    "exportButton": "ui.Button({ label: 'Export Survey Sampling CSV (to Drive)', style: {stretch: 'horizontal', margin: '10px 5px'}, onClick: function() { var surveyTable = buildSurveyTable(); Export.table.toDrive({ collection: surveyTable, description: 'Survey_Sampling_Frame', folder: 'GEE_Exports', fileNamePrefix: 'Survey_Sampling_Bugesera', fileFormat: 'CSV' }); print('Export started: Check Tasks tab.'); } })",
-    "downloadButton": "ui.Button({ label: 'Download CSV (direct)', style: {stretch: 'horizontal', margin: '10px 5px'}, onClick: function() { var surveyTable = buildSurveyTable(); surveyTable.evaluate(function(fc) { if (!fc || !fc.features) { print('⚠️ No data to download'); return; } var features = fc.features; var headers = Object.keys(features[0].properties).concat(['longitude', 'latitude']); var rows = [headers.join(',')]; features.forEach(function(f) { var props = f.properties; var coords = f.geometry.coordinates; var row = headers.map(function(h) { if (h === 'longitude') return coords[0]; if (h === 'latitude') return coords[1]; return props[h]; }); rows.push(row.join(',')); }); var csv = rows.join('\\n'); downloadLinkPanel.clear(); var link = ui.Label({ value: '⬇️ Click here to download CSV', style: {color: 'blue', textDecoration: 'underline', margin: '5px 0'}, targetUrl: 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv) }); downloadLinkPanel.add(link); }); } })"
-  },
-  "interactiveTools": {
-    "selectLabel": "ui.Label({ value: 'Click on the map to test suitability at a location', style: {fontWeight: 'bold', fontSize: '14px', margin: '10px 5px'} })",
-    "pointPanel": "ui.Panel({ style: {width: '300px', padding: '8px', margin: '10px 5px', border: '1px solid gray'} })",
-    "clickedPoints": "[]",
-    "clearButton": "ui.Button({ label: 'Clear All Points', style: {stretch: 'horizontal', margin: '5px'}, onClick: function() { clickedPoints = []; Map.layers().reset(); updatePanels(); } })",
-    "undoButton": "ui.Button({ label: 'Undo Last Point', style: {stretch: 'horizontal', margin: '5px'}, onClick: function() { if (clickedPoints.length > 0) { clickedPoints.pop(); Map.layers().reset(); redrawPoints(); updatePanels(); } } })",
-    "classifySuitability": "function(value) { return ee.Algorithms.If(value.lt(0.2), 'Permanently not suitable', ee.Algorithms.If(value.lt(0.4), 'Temporarily not suitable', ee.Algorithms.If(value.lt(0.6), 'Marginally suitable', ee.Algorithms.If(value.lt(0.8), 'Moderately suitable', 'Highly suitable')))); }"
+//////////////////////////////////////////////////////////////
+//   1) Import Layers of Interest                           //
+//////////////////////////////////////////////////////////////
+
+var gsw = ee.Image('JRC/GSW1_4/GlobalSurfaceWater');
+var riverNetwork = ee.Image('projects/manifest-welder-470408-q6/assets/River_Network');
+var LST_2024_SC = ee.Image('projects/manifest-welder-470408-q6/assets/LST_2024_SC');
+var Bugesera = ee.FeatureCollection('projects/manifest-welder-470408-q6/assets/Bugesera');
+var Bugesera_G = ee.FeatureCollection('projects/manifest-welder-470408-q6/assets/Bugesera_G');
+var dem = ee.Image('USGS/SRTMGL1_003');
+
+///////////////////////////////////////////////////////////////
+//      2) Set up map appearance and GUI layers             //
+///////////////////////////////////////////////////////////////
+
+Map.setOptions('SATELLITE');
+Map.centerObject(Bugesera_G, 9);
+Map.style().set('cursor', 'crosshair');
+
+var ext2017 = ui.Map.Layer(gsw.select('occurrence').clip(Bugesera), {min:0, max:100}, 'Water Occurrence', false);
+var rvNetwork = ui.Map.Layer(riverNetwork, {min:1, max:255}, 'River Network', false);
+var LST2024 = ui.Map.Layer(LST_2024_SC, {min:20, max:50}, 'Land Surface Temperature', false);
+
+Map.add(ext2017);
+Map.add(rvNetwork);
+Map.add(LST2024);
+
+///////////////////////////////////////////////////////////////
+//          3) Set up panels and widgets                     //
+///////////////////////////////////////////////////////////////
+
+var header = ui.Label('Bugesera Season C Spatial Sampling & Irrigation Suitability Mapping Tool: A Geospatial Decision-Support Tool for Season C Agriculture', 
+                  {fontSize: '25px', fontWeight: 'bold', color: '4A997E'});
+
+var text = ui.Label(
+  'The Bugesera AgroHydro Explorer is an interactive GIS tool for irrigation planning and agricultural survey data collection in Bugesera District. ' +
+  'It integrates water maps, river networks, land surface temperature (LST), slope, and irrigation suitability to identify areas with high potential for Season C crop production.', 
+  {fontSize: '15px'}
+);
+
+var panel = ui.Panel({widgets:[header, text], style:{width:'500px', position:'middle-right'}});
+var intro = ui.Panel([
+  ui.Label({value: '____________________________________________', style:{fontWeight:'bold', color:'4A997E'}}),
+  ui.Label({value:'Select layers to display.', style:{fontSize:'15px', fontWeight:'bold'}})
+]);
+
+panel.add(intro);
+ui.root.insert(1, panel);
+
+///////////////////////////////////////////////////////////////
+//         4) Add checkbox widgets and legends               //
+///////////////////////////////////////////////////////////////
+
+var extLabel = ui.Label({value:'AgroHydro Explorer', style:{fontWeight:'bold', fontSize:'16px', margin:'10px 5px'}});
+var extCheck = ui.Checkbox('Water Occurrence 2017').setValue(false);
+var extCheck2 = ui.Checkbox('Estimated Water 2024').setValue(false);
+var extCheck3 = ui.Checkbox('River Network').setValue(false);
+var extCheck4 = ui.Checkbox('LST 2024').setValue(false);
+
+//Now do the same for Land surface temperature
+
+var heightLab = ui.Label({value:'Land surface temperature',
+style: {fontWeight: 'bold', fontSize: '16px', margin: '10px 5px'}
+});
+
+
+var extCheck4 = ui.Checkbox('LST in season C_2024').setValue(false);
+
+
+
+      //4.1) Create legends
+
+//The following code creates legends we can add to the panel
+
+//Extent Legend
+///////////////
+
+// Set position of panel
+var extentLegend = ui.Panel({
+  style: {
+    position: 'bottom-left',
+    padding: '8px 15px'
   }
+});
+
+// The following creates and styles 1 row of the legend.
+var makeRowa = function(color, name) {
+ 
+      // Create the label that is actually the colored box.
+      var colorBox = ui.Label({
+        style: {
+          backgroundColor: '#' + color,
+          // Use padding to give the box height and width.
+          padding: '8px',
+          margin: '0 0 4px 0'
+        }
+      });
+ 
+      // Create a label with the description text.
+      var description = ui.Label({
+        value: name,
+        style: {margin: '0 0 4px 6px'}
+      });
+ 
+      // Return the panel
+      return ui.Panel({
+        widgets: [colorBox, description],
+        layout: ui.Panel.Layout.Flow('horizontal')
+      });
+};
+
+//Create a palette using the same colors we used for each extent layer
+var paletteMAPa = [
+'ffffff',//2024
+'0000ff',//2017
+'0000ff',//2020
+];
+
+// Name of each legend value
+var namesa = ['water in 2017','Water in 2024','River Network']; 
+           
+ 
+// Add color and names to legend
+for (var i = 0; i < 3; i++) {
+  extentLegend.add(makeRowa(paletteMAPa[i], namesa[i]));
+  }  
+
+  
+//4.2)Land Surface Temperature Legend
+///////////////
+
+var LST_vis = {min: 20, max: 50, palette: ['#0000ff', '#00ff00', '#ffff00', 'ffa500', '#ff0000']};
+function makeLegend2 (LST_vis) {
+  var lon = ee.Image.pixelLonLat().select('longitude');
+  var gradient = lon.multiply((LST_vis.max-LST_vis.min)/100.0).add(LST_vis.min);
+  var legendImage = gradient.visualize(LST_vis);
+  
+  var thumb = ui.Thumbnail({
+    image: legendImage, 
+    params: {bbox:'0,0,100,8', dimensions:'256x20'},  
+    style: {position: 'bottom-center'}
+  });
+  var panel2 = ui.Panel({
+    widgets: [
+      ui.Label('Low'), 
+      ui.Label({style: {stretch: 'horizontal'}}), 
+      ui.Label('High')
+    ],
+    layout: ui.Panel.Layout.flow('horizontal'),
+    style: {stretch: 'horizontal', maxWidth: '270px', padding: '0px 0px 0px 8px'}
+  });
+  return ui.Panel().add(panel2).add(thumb);
 }
+
+//4.3) Add these new widgets to the panel in the order you want them to appear
+panel.add(extLabel)
+      .add(extCheck)
+      .add(extCheck2)
+      .add(extCheck3)
+      .add(extCheck4)
+      .add(extentLegend)
+      .add(heightLab)
+      .add(makeLegend2(LST_vis));
+
+///////////////////////////////////////////////////////////////
+//          5) Add functionality to checkboxes               //
+///////////////////////////////////////////////////////////////
+
+extCheck.onChange(function(checked){ ext2017.setShown(checked); });
+extCheck3.onChange(function(checked){ rvNetwork.setShown(checked); });
+extCheck4.onChange(function(checked){ LST2024.setShown(checked); });
+
+///////////////////////////////////////////////////////////////
+//   6) Water mask estimation (2017 & 2024)                  //
+///////////////////////////////////////////////////////////////
+
+// Water presence >50% for 2017
+var water2017 = gsw.select('occurrence').gt(50).clip(Bugesera);
+
+// Estimate 2024 water using change_abs: positive = new water
+var waterChange = gsw.select('change_abs').gt(20).clip(Bugesera); 
+var water2024 = water2017.or(waterChange);
+
+// Add 2024 water checkbox
+var ext2024 = ui.Map.Layer(water2024, {min:0, max:1, palette:['white','blue']}, 'Estimated Water 2024', false);
+Map.add(ext2024);
+extCheck2.onChange(function(checked){ ext2024.setShown(checked); });
+
+  
+//////////////////////////////////////////////////////////////
+// 7)Water Extent Change Chart (2017 vs 2024) with Checkbox  //
+//////////////////////////////////////////////////////////////
+
+// --- 1) Compute water area for 2017 and 2024 ---
+var water2017_area = water2017.multiply(ee.Image.pixelArea()).divide(10000)
+  .reduceRegion({
+    reducer: ee.Reducer.sum(),
+    geometry: Bugesera,
+    scale: 30,
+    maxPixels: 1e13
+  }).get('occurrence');
+
+var water2024_area = water2024.multiply(ee.Image.pixelArea()).divide(10000)
+  .reduceRegion({
+    reducer: ee.Reducer.sum(),
+    geometry: Bugesera,
+    scale: 30,
+    maxPixels: 1e13
+  }).get('occurrence');
+
+// --- 2) Create a FeatureCollection for charting ---
+var waterStats = ee.FeatureCollection([
+  ee.Feature(null, {'Year': 2017, 'Area_ha': water2017_area}),
+  ee.Feature(null, {'Year': 2024, 'Area_ha': water2024_area})
+]);
+
+// --- 3) Build the chart ---
+var waterChart = ui.Chart.feature.byFeature({
+  features: waterStats,
+  xProperty: 'Year',
+  yProperties: ['Area_ha']
+})
+.setChartType('ColumnChart')
+.setOptions({
+  title: 'Water Extent in Bugesera (2017 vs 2024)',
+  hAxis: {title: 'Year'},
+  vAxis: {title: 'Water Area (ha)'},
+  legend: {position: 'none'},
+  colors: ['#0000ff']
+});
+
+// --- 4) Wrap chart in a panel (hidden by default) ---
+var waterChartPanel = ui.Panel([waterChart], null, {stretch: 'horizontal'});
+waterChartPanel.style().set('shown', false);
+
+// --- 5) Checkbox to toggle chart visibility ---
+var chartCheck = ui.Checkbox({
+  label: 'Show Water Extent Change Chart (2017-2024)',
+  value: false
+});
+chartCheck.onChange(function(checked) {
+  waterChartPanel.style().set('shown', checked);
+});
+
+// --- 6) Optional dropdown for multiple charts (if you add more later) ---
+var chartSelector = ui.Select({
+  items: ['Water Extent Change (2017-2024)'],  // Add more chart names here if needed
+  value: 'Water Extent Change (2017-2024)',
+  onChange: function(selection) {
+    waterChartPanel.clear();
+    if (selection === 'Water Extent Change (2017-2024)') {
+      waterChartPanel.add(waterChart);
+    }
+  }
+});
+
+// --- 7) Combine checkbox + chart panel into a single container ---
+var chartContainer = ui.Panel({
+  widgets: [chartCheck, chartSelector, waterChartPanel],
+  style: {width: '360px', padding: '8px', margin: '10px 5px', border: '1px solid gray'}
+});
+
+// --- 8) Add to main side panel ---
+panel.add(chartContainer);
+
+//////////////////////////////////////////////////////////////
+// 7.1) POLICY INSIGHT PANEL FOR JUDGES                      //
+//////////////////////////////////////////////////////////////
+
+var policyPanel = ui.Panel({
+  style: {
+    width: '360px',
+    padding: '8px',
+    margin: '10px 5px',
+    border: '2px solid #4A997E'
+  }
+});
+
+policyPanel.add(ui.Label({
+  value: 'Policy Insight',
+  style: {fontWeight: 'bold', fontSize: '14px', color: '#4A997E'}
+}));
+
+policyPanel.add(ui.Label(
+  'This system identifies irrigation-priority zones in Bugesera for Season C.\n' +
+  'It helps NISR, MINAGRI and District planners reduce irrigation investment risks \n' +
+  'and prioritize high-return areas using satellite data and AI.'
+));
+
+panel.add(policyPanel);
+
+//////////////////////////////////////////////////////////////
+//   8) Land Surface Temperature Change Chart (Jun–Aug 2024) //
+//////////////////////////////////////////////////////////////
+
+// Use MODIS 8-day LST product (in Kelvin, scale factor = 0.02)
+var modisLST = ee.ImageCollection('MODIS/061/MOD11A2')
+  .filterDate('2024-06-01', '2024-08-31')
+  .filterBounds(Bugesera)
+  .select('LST_Day_1km');  // Daytime LST
+
+// Convert to °C
+var modisLST_C = modisLST.map(function(img) {
+  return img.multiply(0.02).subtract(273.15)
+            .copyProperties(img, ['system:time_start']);
+});
+
+// Compute Bugesera mean LST for each image
+var lstStats = modisLST_C.map(function(img) {
+  var meanDict = img.reduceRegion({
+    reducer: ee.Reducer.mean(),
+    geometry: Bugesera,
+    scale: 1000,
+    maxPixels: 1e13
+  });
+  return ee.Feature(null, {
+    'date': ee.Date(img.get('system:time_start')).format('YYYY-MM-dd'),
+    'LST (°C)': meanDict.get('LST_Day_1km')
+  });
+});
+
+// Build chart
+var lstChart = ui.Chart.feature.byFeature({
+  features: lstStats,
+  xProperty: 'date',
+  yProperties: ['LST (°C)']
+})
+.setChartType('LineChart')
+.setOptions({
+  title: 'Mean Land Surface Temperature (Bugesera, Jun–Aug 2024)',
+  hAxis: {title: 'Date'},
+  vAxis: {title: 'Temperature (°C)'},
+  legend: {position: 'none'},
+  colors: ['#e6550d']
+});
+
+// Wrap chart in panel with checkbox
+var lstChartPanel = ui.Panel([lstChart], null, {stretch: 'horizontal'});
+lstChartPanel.style().set('shown', false);
+
+var lstChartCheck = ui.Checkbox({
+  label: 'Show LST Change Chart (Jun–Aug 2024)',
+  value: false
+});
+lstChartCheck.onChange(function(checked) {
+  lstChartPanel.style().set('shown', checked);
+});
+
+// Add to side panel
+panel.add(ui.Label({
+  value: 'Land Surface Temperature Analysis',
+  style: {fontWeight:'bold', fontSize:'16px', margin:'10px 5px'}
+}));
+panel.add(lstChartCheck);
+panel.add(lstChartPanel);
+
+//////////////////////////////////////////////////////////////
+//   9)Slope Suitability & Layer                             //
+//////////////////////////////////////////////////////////////
+
+// DEM already imported earlier
+var slope = ee.Terrain.slope(dem).clip(Bugesera);
+
+// Normalize slope (0–30° = suitable, steeper = unsuitable)
+var slopeSuit = slope.expression('1 - b(0) / 30').clamp(0,1);
+
+// Visualization
+var slopeVis = {min: 0, max: 30, palette: ['#00ff00', '#ffff00', '#ff0000']};
+var slopeLayer = ui.Map.Layer(slope, slopeVis, 'Slope (degrees)', false);
+Map.add(slopeLayer);
+
+// Checkbox for slope
+var slopeCheck = ui.Checkbox('Slope').setValue(false);
+slopeCheck.onChange(function(checked) {
+  slopeLayer.setShown(checked);
+});
+
+// Add checkbox to panel
+panel.add(slopeCheck);
+
+//////////////////////////////////////////////////////////////
+//10)Legend for slope                                       //
+//////////////////////////////////////////////////////////////
+
+function makeSlopeRow(color, name) {
+  var colorBox = ui.Label({
+    style: {
+      backgroundColor: color,
+      padding: '8px',
+      margin: '0 0 4px 0'
+    }
+  });
+  var description = ui.Label({
+    value: name,
+    style: {margin: '0 0 4px 6px'}
+  });
+  return ui.Panel({
+    widgets: [colorBox, description],
+    layout: ui.Panel.Layout.Flow('horizontal')
+  });
+}
+
+var slopeLegend = ui.Panel({
+  style: {
+    position: 'bottom-left',
+    padding: '8px 15px'
+  }
+});
+
+slopeLegend.add(ui.Label({
+  value: 'Slope (°)',
+  style: {fontWeight: 'bold', fontSize: '14px', margin: '0 0 8px 0'}
+}));
+
+var slopePalette = ['#00ff00', '#ffff00', '#ff0000'];
+var slopeNames = ['Flat (0–10°)', 'Moderate (10–20°)', 'Steep (>20°)'];
+
+for (var i = 0; i < slopePalette.length; i++) {
+  slopeLegend.add(makeSlopeRow(slopePalette[i], slopeNames[i]));
+}
+
+slopeLegend.style().set('shown', false);
+Map.add(slopeLegend);
+
+// Link legend visibility to checkbox
+slopeCheck.onChange(function(checked) {
+  slopeLayer.setShown(checked);
+  slopeLegend.style().set('shown', checked);
+});
+
+//////////////////////////////////////////////////////////////
+//   11) Irrigation Suitability Map (Adaptive 5-class)        //
+//////////////////////////////////////////////////////////////
+
+// --- 1) Slope suitability (define slopeFilled here) ---
+var slope = ee.Terrain.slope(dem).clip(Bugesera);
+var slopeSuit = slope.expression('1 - b(0) / 30').clamp(0, 1);
+var slopeFilled = slopeSuit.unmask(0); // <--- ensures no nulls
+
+// --- 2) River proximity suitability (define riverFilled) ---
+var riverMask = riverNetwork.gt(0).selfMask();
+var riverDist = riverMask.fastDistanceTransform(30).sqrt();
+var riverSuit = riverDist.expression('1 - b(0) / 5000').clamp(0, 1).clip(Bugesera);
+var riverFilled = riverSuit.unmask(0);
+
+// --- 3) LST suitability (define LSTfilled) ---
+var LST_norm = LST_2024_SC.unitScale(20, 50).clip(Bugesera);
+var LST_suit = LST_norm.expression('1 - b(0)').clamp(0, 1);
+var LSTfilled = LST_suit.unmask(0.5);
+
+// --- 4) Weighted overlay (same variable name 'suitability' used elsewhere) ---
+var suitability = slopeFilled.multiply(0.4)
+  .add(riverFilled.multiply(0.35))
+  .add(LSTfilled.multiply(0.25))
+  .rename('suitability')
+  .clip(Bugesera);
+
+// --- 5) Compute min & max over Bugesera (for adaptive binning) ---
+var minMax = suitability.reduceRegion({
+  reducer: ee.Reducer.minMax(),
+  geometry: Bugesera,
+  scale: 30,
+  maxPixels: 1e13
+});
+print('Suitability min/max:', minMax);
+
+// Turn the min/max into ee.Number (safe even if null)
+var minVal = ee.Number(minMax.get('suitability_min'));
+var maxVal = ee.Number(minMax.get('suitability_max'));
+
+// --- 6) Build adaptive classes; handle case min==max safely ---
+var suitabilityClass = ee.Image(
+  ee.Algorithms.If(
+    // If there is variation
+    maxVal.gt(minVal),
+    // true branch: compute 1 + floor((value - min)/step) with step = (max-min)/5
+    suitability.expression(
+      '1 + floor((value - min) / step)', {
+        value: suitability,
+        min: minVal,
+        step: maxVal.subtract(minVal).divide(5)
+      }
+    ).clamp(1, 5).int(),
+    // false branch: no variation -> assign middle class (3)
+    ee.Image.constant(3)
+  )
+).rename('suitability_class').clip(Bugesera);
+
+// --- 7) Visualization & quick histogram check ---
+var suitabilityVis = {
+  min: 1, max: 5,
+  palette: ['#800000', '#ff0000', '#ffff00', '#90ee90', '#006400']
+};
+Map.addLayer(suitabilityClass, suitabilityVis, 'Irrigation Suitability (Adaptive 5-class)', true);
+
+// Print histogram so you can confirm classes exist
+var hist = suitabilityClass.reduceRegion({
+  reducer: ee.Reducer.frequencyHistogram(),
+  geometry: Bugesera,
+  scale: 30,
+  maxPixels: 1e13
+});
+print('Suitability class histogram:', hist);
+
+//////////////////////////////////////////////////////////////
+//   12) Legend for Irrigation Suitability Map                //
+//////////////////////////////////////////////////////////////
+
+var suitLegend = ui.Panel({
+  style: {position: 'bottom-left', padding: '8px 15px'}
+});
+
+suitLegend.add(ui.Label({
+  value: 'Irrigation Suitability',
+  style: {fontWeight: 'bold', fontSize: '14px'}
+}));
+
+function makeSuitRow(color, name) {
+  return ui.Panel({
+    widgets: [
+      ui.Label({style: {backgroundColor: color, padding: '8px', margin: '0'}}),
+      ui.Label({value: name, style: {margin: '0 0 4px 6px'}})
+    ],
+    layout: ui.Panel.Layout.Flow('horizontal')
+  });
+}
+
+var suitPalette = ['#800000', '#ff0000', '#ffff00', '#90ee90', '#006400'];
+var suitNames   = ['Permanently not suitable',
+                   'Temporarily not suitable',
+                   'Marginally suitable',
+                   'Moderately suitable',
+                   'Highly suitable'];
+
+for (var i = 0; i < suitPalette.length; i++) {
+  suitLegend.add(makeSuitRow(suitPalette[i], suitNames[i]));
+}
+
+suitLegend.style().set('shown', false);
+Map.add(suitLegend);
+
+// Checkbox to toggle
+var suitCheck = ui.Checkbox('Show Irrigation Suitability (5-class)').setValue(true);
+panel.add(suitCheck);
+
+var layers = Map.layers();
+var suitabilityLayer = layers.get(layers.length() - 1);
+
+suitCheck.onChange(function(checked) {
+  suitabilityLayer.setShown(checked);
+  suitLegend.style().set('shown', checked);
+});
+
+//////////////////////////////////////////////////////////////
+//   13) Area Statistics per Suitability Class + Checkboxes  //
+//////////////////////////////////////////////////////////////
+
+// Create an image with 2 bands: first area (ha), then class IDs
+var areaImage = ee.Image.cat(
+  ee.Image.pixelArea().divide(10000),   // value band: area in hectares
+  suitabilityClass                      // group band: class IDs
+).rename(['area_ha', 'suitability_class']);
+
+// Reduce region: group areas by class
+var classAreas = areaImage.reduceRegion({
+  reducer: ee.Reducer.sum().group({
+    groupField: 1,            // index of 'suitability_class' band
+    groupName: 'class_id'
+  }),
+  geometry: Bugesera,
+  scale: 30,
+  maxPixels: 1e13
+});
+
+// Extract groups
+var areaGroups = ee.List(classAreas.get('groups'));
+
+// Convert to FeatureCollection
+var areaTable = ee.FeatureCollection(areaGroups.map(function(g) {
+  g = ee.Dictionary(g);
+  return ee.Feature(null, {
+    'Class ID': ee.Number(g.get('class_id')).int(),   // force int
+    'Area (ha)': ee.Number(g.get('sum'))
+  });
+}));
+// Print to Console
+print('areaTable sample feature', areaTable.first());
+
+//////////////////////////////////////////////////////////////
+// 14) HEADLINE STATISTICS PANEL (USER DASHBOARD)         //
+//////////////////////////////////////////////////////////////
+
+// --- Compute total area of Bugesera (ha) ---
+var totalArea = ee.Image.pixelArea().divide(10000)
+  .reduceRegion({
+    reducer: ee.Reducer.sum(),
+    geometry: Bugesera,
+    scale: 30,
+    maxPixels: 1e13
+  }).get('area');
+
+// --- Get class areas from your existing areaTable ---
+var highSuitArea = areaTable.filter(ee.Filter.eq('Class ID', 5))
+                           .first().get('Area (ha)');
+
+var moderateSuitArea = areaTable.filter(ee.Filter.eq('Class ID', 4))
+                               .first().get('Area (ha)');
+
+var unsuitArea = areaTable.filter(ee.Filter.eq('Class ID', 1))
+                         .first().get('Area (ha)');
+
+// --- Calculate percentages ---
+var highSuitPercent = ee.Number(highSuitArea).divide(totalArea).multiply(100);
+var moderateSuitPercent = ee.Number(moderateSuitArea).divide(totalArea).multiply(100);
+var unsuitPercent = ee.Number(unsuitArea).divide(totalArea).multiply(100);
+
+// --- UI PANEL ---
+var headlinePanel = ui.Panel({
+  style: {
+    width: '360px',
+    padding: '8px',
+    margin: '10px 5px',
+    border: '2px solid #4A997E'
+  }
+});
+
+// Title
+headlinePanel.add(ui.Label({
+  value: 'Key Irrigation Suitability Statistics',
+  style: {fontWeight: 'bold', fontSize: '14px', color: '#4A997E'}
+}));
+
+// Dynamic content
+var headlineText = ui.Panel();
+
+headlinePanel.add(headlineText);
+
+// Evaluate & display numbers
+ee.Dictionary({
+  total: totalArea,
+  highH: highSuitArea,
+  highP: highSuitPercent,
+  modH: moderateSuitArea,
+  modP: moderateSuitPercent,
+  unsH: unsuitArea,
+  unsP: unsuitPercent
+}).evaluate(function(vals) {
+
+  headlineText.add(ui.Label('Total Area: ' + vals.total.toFixed(0) + ' ha'));
+
+  headlineText.add(ui.Label(
+    'Highly Suitable: ' + vals.highH.toFixed(0) + 
+    ' ha (' + vals.highP.toFixed(1) + '%)',
+    {color: '#006400'}
+  ));
+
+  headlineText.add(ui.Label(
+    'Moderately Suitable: ' + vals.modH.toFixed(0) + 
+    ' ha (' + vals.modP.toFixed(1) + '%)',
+    {color: '#90ee90'}
+  ));
+
+  headlineText.add(ui.Label(
+    'Permanently Not Suitable: ' + vals.unsH.toFixed(0) + 
+    ' ha (' + vals.unsP.toFixed(1) + '%)',
+    {color: '#800000'}
+  ));
+});
+
+// --- Add to your main panel ---
+panel.add(headlinePanel);
+
+//////////////////////////////////////////////////////////////
+// 15) FIXED PIE CHART WITH STRING CLASS LABELS           //
+//////////////////////////////////////////////////////////////
+
+// Convert Class ID into String Labels for Pie Chart
+var areaTableWithLabels = areaTable.map(function(f) {
+  var id = ee.Number(f.get('Class ID'));
+  var label = ee.String(
+    ee.Algorithms.If(id.eq(1), 'Permanently not suitable',
+    ee.Algorithms.If(id.eq(2), 'Temporarily not suitable',
+    ee.Algorithms.If(id.eq(3), 'Marginally suitable',
+    ee.Algorithms.If(id.eq(4), 'Moderately suitable',
+    'Highly suitable'))))
+  );
+  return f.set('Class_Label', label);
+});
+
+// Create Pie Chart
+var pieChart = ui.Chart.feature.byFeature({
+  features: areaTableWithLabels,
+  xProperty: 'Class_Label',     // <--- NOW STRING
+  yProperties: ['Area (ha)']
+})
+.setChartType('PieChart')
+.setOptions({
+  title: 'Suitability Area Distribution',
+  pieHole: 0.4,
+  legend: {position: 'right'},
+  slices: {
+    0: {color: '#800000'}, // Not suitable
+    1: {color: '#ff0000'}, 
+    2: {color: '#ffff00'},
+    3: {color: '#90ee90'},
+    4: {color: '#006400'}
+  }
+});
+
+// UI panel
+var piePanel = ui.Panel({
+  style: {
+    width: '360px',
+    padding: '8px',
+    margin: '10px 5px',
+    border: '1px solid #4A997E'
+  }
+});
+
+piePanel.add(ui.Label({
+  value: 'Suitability Area (Pie Chart)',
+  style: {fontWeight: 'bold', fontSize: '14px', color: '#4A997E'}
+}));
+
+piePanel.add(pieChart);
+
+// Add to GUI
+panel.add(piePanel);
+
+// ---------------- UI Panel ----------------
+var areaPanel = ui.Panel({
+  style: {width: '360px', padding: '8px', margin: '10px 5px', border: '1px solid gray'}
+});
+areaPanel.add(ui.Label({
+  value: 'Area by Suitability Class',
+  style: {fontWeight: 'bold', fontSize: '14px', margin: '5px 0'}
+}));
+
+// Suitability class names
+var classNames = {
+  1: 'Permanently not suitable',
+  2: 'Temporarily not suitable',
+  3: 'Marginally suitable',
+  4: 'Moderately suitable',
+  5: 'Highly suitable'
+};
+
+// Suitability class colors (same as map legend)
+var suitPalette = ['#800000', '#ff0000', '#ffff00', '#90ee90', '#006400'];
+
+// Holder for dynamic UI
+var checkboxes = {};
+var resultsPanel = ui.Panel();
+areaPanel.add(resultsPanel);
+
+// ---- Function to refresh rows + chart ----
+function updatePanel(fc) {
+  resultsPanel.clear();
+
+  // Get which classes are checked
+  var activeIds = Object.keys(checkboxes).filter(function(id) {
+    return checkboxes[id].getValue(); // checkbox ticked
+  }).map(function(d) { return parseInt(d, 10); });
+
+  if (activeIds.length === 0) {
+    resultsPanel.add(ui.Label('⚠️ No classes selected.'));
+    return;
+  }
+
+  // Filter features by checked class IDs
+  var filtered = fc.filter(ee.Filter.inList('Class ID', activeIds));
+
+  // Add text rows
+  filtered.evaluate(function(clientFc) {
+    if (!clientFc || !clientFc.features) return;
+
+    // Sort by class ID
+    clientFc.features.sort(function(a, b) {
+      return a.properties['Class ID'] - b.properties['Class ID'];
+    });
+
+    clientFc.features.forEach(function(f) {
+      var props = f.properties;
+      var classId = props['Class ID'];
+      var className = classNames[classId] || ('Class ' + classId);
+      var area = Number(props['Area (ha)']).toFixed(2);
+      resultsPanel.add(ui.Label({
+        value: className + ': ' + area + ' ha',
+        style: {color: suitPalette[classId - 1]}
+      }));
+    });
+  });
+
+  // Add chart (server-side, filtered)
+  var chart = ui.Chart.feature.byFeature({
+    features: filtered,
+    xProperty: 'Class ID',
+    yProperties: ['Area (ha)']
+  })
+  .setChartType('ColumnChart')
+  .setOptions({
+    title: 'Area per Selected Class',
+    hAxis: {title: 'Suitability Class', format: '0'},
+    vAxis: {title: 'Area (ha)'},
+    legend: {position: 'none'},
+    colors: suitPalette
+  });
+
+  resultsPanel.add(chart);
+}
+
+// ---- Build checkboxes for each class ----
+[1, 2, 3, 4, 5].forEach(function(classId) {
+  var cb = ui.Checkbox({
+    label: classNames[classId],
+    value: true, // default checked
+    style: {color: suitPalette[classId - 1]}
+  });
+ cb.onChange(function() {
+    updatePanel(areaTable);
+  });
+
+  checkboxes[classId] = cb;
+  areaPanel.add(cb);
+});
+
+// Initial update
+updatePanel(areaTable);
+
+// Add panel to main GUI
+panel.add(areaPanel);
+
+
+
+//////////////////////////////////////////////////////////////
+//   16) Create Spatial Sampling Frame for Survey Data        //
+//////////////////////////////////////////////////////////////
+
+var nPoints = 20; // number per class
+var samplePoints = suitabilityClass.stratifiedSample({
+  numPoints: nPoints,
+  classBand: 'suitability_class',
+  region: Bugesera,
+  scale: 30,
+  seed: 42,
+  geometries: true
+});
+
+// Add layer
+var sampleLayer = ui.Map.Layer(samplePoints, {color: 'red'}, 'Survey Sample Points', false);
+Map.add(sampleLayer);
+
+// Checkbox
+var sampleCheck = ui.Checkbox('Survey Sampling Frame').setValue(false);
+sampleCheck.onChange(function(checked){ sampleLayer.setShown(checked); });
+panel.add(ui.Label({
+  value: 'Survey Sampling Frame',
+  style: {fontWeight:'bold', fontSize:'16px', margin:'10px 5px'}
+}));
+panel.add(sampleCheck);
+
+//////////////////////////////////////////////////////////////
+//   17) Export + Direct Download CSV Widget for Survey Data //
+//////////////////////////////////////////////////////////////
+
+function buildSurveyTable() {
+  return suitabilityClass.stratifiedSample({
+    numPoints: 20,
+    classBand: 'suitability_class',
+    region: Bugesera,
+    scale: 30,
+    seed: 42,
+    geometries: true
+  });
+}
+
+// ---- Option 1: Export to Google Drive (as before) ----
+var exportButton = ui.Button({
+  label: 'Export Survey Sampling CSV (to Drive)',
+  style: {stretch: 'horizontal', margin: '10px 5px'},
+  onClick: function() {
+    var surveyTable = buildSurveyTable();
+    Export.table.toDrive({
+      collection: surveyTable,
+      description: 'Survey_Sampling_Frame',
+      folder: 'GEE_Exports',
+      fileNamePrefix: 'Survey_Sampling_Bugesera',
+      fileFormat: 'CSV'
+    });
+    print('Export started: Check Tasks tab.');
+  }
+});
+
+// ---- Option 2: Direct download as CSV ----
+var downloadLinkPanel = ui.Panel();  // holder for the link
+
+var downloadButton = ui.Button({
+  label: 'Download CSV (direct)',
+  style: {stretch: 'horizontal', margin: '10px 5px'},
+  onClick: function() {
+    var surveyTable = buildSurveyTable();
+    surveyTable.evaluate(function(fc) {
+      if (!fc || !fc.features) {
+        print('⚠️ No data to download');
+        return;
+      }
+
+      // Build CSV text
+      var features = fc.features;
+      var headers = Object.keys(features[0].properties).concat(['longitude', 'latitude']);
+      var rows = [headers.join(',')];
+
+      features.forEach(function(f) {
+        var props = f.properties;
+        var coords = f.geometry.coordinates;
+        var row = headers.map(function(h) {
+          if (h === 'longitude') return coords[0];
+          if (h === 'latitude') return coords[1];
+          return props[h];
+        });
+        rows.push(row.join(','));
+      });
+
+      var csv = rows.join('\n');
+
+      // Refresh link (clear old link before adding a new one)
+      downloadLinkPanel.clear();
+      var link = ui.Label({
+        value: '⬇️ Click here to download CSV',
+        style: {color: 'blue', textDecoration: 'underline', margin: '5px 0'},
+        targetUrl: 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv)
+      });
+      downloadLinkPanel.add(link);
+    });
+  }
+});
+
+// Add to side panel
+panel.add(downloadButton);
+panel.add(downloadLinkPanel);
+
+//////////////////////////////////////////////////////////////
+//   18) Interactive Point Suitability Check + CSV Export   //
+//////////////////////////////////////////////////////////////
+
+var selectLabel = ui.Label({
+  value: 'Click on the map to test suitability at a location',
+  style: {fontWeight: 'bold', fontSize: '14px', margin: '10px 5px'}
+});
+var pointPanel = ui.Panel({
+  style: {width: '300px', padding: '8px', margin: '10px 5px', border: '1px solid gray'}
+});
+pointPanel.add(ui.Label('Selected point suitability will appear here.'));
+panel.add(selectLabel);
+panel.add(pointPanel);
+
+// --- Store clicked points ---
+var clickedPoints = [];
+var pointDownloadPanel = ui.Panel();
+panel.add(pointDownloadPanel);
+
+// --- Buttons to manage points ---
+var buttonPanel = ui.Panel({layout: ui.Panel.Layout.flow('horizontal')});
+var clearButton = ui.Button({
+  label: 'Clear All Points',
+  style: {stretch: 'horizontal', margin: '5px'},
+  onClick: function() {
+    clickedPoints = [];
+    Map.layers().reset(); // remove all points from map
+    updatePanels();
+  }
+});
+var undoButton = ui.Button({
+  label: 'Undo Last Point',
+  style: {stretch: 'horizontal', margin: '5px'},
+  onClick: function() {
+    if (clickedPoints.length > 0) {
+      clickedPoints.pop(); // remove last
+      Map.layers().reset(); // clear map layers
+      redrawPoints();       // redraw remaining with correct labels
+      updatePanels();
+    }
+  }
+});
+buttonPanel.add(undoButton);
+buttonPanel.add(clearButton);
+panel.add(buttonPanel);
+
+function classifySuitability(value) {
+  return ee.Algorithms.If(value.lt(0.2), 'Permanently not suitable',
+    ee.Algorithms.If(value.lt(0.4), 'Temporarily not suitable',
+      ee.Algorithms.If(value.lt(0.6), 'Marginally suitable',
+        ee.Algorithms.If(value.lt(0.8), 'Moderately suitable',
+          'Highly suitable'))));
+}
+
+// --- Helper: redraw map markers with updated numbering ---
+function redrawPoints() {
+  clickedPoints.forEach(function(p, i) {
+    var pt = ee.Geometry.Point([p.lon, p.lat]);
+    Map.layers().add(ui.Map.Layer(pt, {color: 'red'}, 'Clicked Point ' + (i+1)));
+  });
+}
+
+// --- Helper: update side panel + CSV link ---
+function updatePanels() {
+  pointPanel.clear();
+  if (clickedPoints.length === 0) {
+    pointPanel.add(ui.Label('No points selected yet.'));
+    pointDownloadPanel.clear();
+    return;
+  }
+
+  pointPanel.add(ui.Label('Clicked Points:'));
+  clickedPoints.forEach(function(p, i) {
+    var recommendation;
+if (p.suitability_class === 'Highly suitable') recommendation = '✅ Strongly recommended for irrigation';
+else if (p.suitability_class === 'Moderately suitable') recommendation = '⚠️ Moderately recommended';
+else recommendation = '❌ Not recommended without intervention';
+
+pointPanel.add(ui.Label(
+  (i+1) + ') ' + p.lon_str + ', ' + p.lat_str +
+  ' → ' + p.suitability_class + ' (' + p.suitability_value + ')\n' +
+  'Recommendation: ' + recommendation
+));
+  });
+
+  // Build CSV
+  var headers = ['longitude','latitude','suitability_value','suitability_class'];
+  var rows = [headers.join(',')];
+  clickedPoints.forEach(function(p) {
+    rows.push([p.lon_str, p.lat_str, p.suitability_value, p.suitability_class].join(','));
+  });
+  var csv = rows.join('\n');
+
+  // Refresh download link
+  pointDownloadPanel.clear();
+  var link = ui.Label({
+    value: '⬇️ Download all clicked points as CSV',
+    style: {color: 'blue', textDecoration: 'underline', margin: '5px 0'},
+    targetUrl: 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv)
+  });
+  pointDownloadPanel.add(link);
+}
+
+Map.onClick(function(coords) {
+  var point = ee.Geometry.Point(coords.lon, coords.lat);
+  var val = suitability.reduceRegion({
+    reducer: ee.Reducer.first(),
+    geometry: point,
+    scale: 30
+  }).get('suitability');
+
+  val.evaluate(function(v) {
+    if (v === null) {
+      pointPanel.add(ui.Label('No data at this location.'));
+      return;
+    }
+
+    var label = classifySuitability(ee.Number(v));
+    label.evaluate(function(lbl) {
+      // Save both raw + display values
+      clickedPoints.push({
+        lon: coords.lon,
+        lat: coords.lat,
+        lon_str: coords.lon.toFixed(5),
+        lat_str: coords.lat.toFixed(5),
+        suitability_value: v.toFixed(3),
+        suitability_class: lbl
+      });
+
+      // Refresh map + side panel
+      Map.layers().reset();
+      redrawPoints();
+      updatePanels();
+    });
+  });
+});
+
+
+
+
+
