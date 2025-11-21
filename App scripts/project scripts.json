@@ -28,7 +28,7 @@
     }
   ],
   "uiPanel": {
-    "header": "ui.Label('Bugesera AgroHydro Explorer: A Geospatial Decision-Support Tool for Season C Agriculture', {fontSize: '25px', fontWeight: 'bold', color: '4A997E'})",
+    "header": "ui.Label('Bugesera Season C Spatial Sampling & Irrigation Suitability Mapping Tool: A Geospatial Decision-Support Tool for Season C Agriculture: A Geospatial Decision-Support Tool for Season C Agriculture', {fontSize: '25px', fontWeight: 'bold', color: '4A997E'})",
     "text": "ui.Label('The Bugesera AgroHydro Explorer is an interactive GIS tool for irrigation planning and agricultural survey data collection in Bugesera District. It integrates water maps, river networks, land surface temperature (LST), slope, and irrigation suitability to identify areas with high potential for Season C crop production.', {fontSize: '15px'})",
     "panel": "ui.Panel({widgets:[header, text], style:{width:'300px', position:'middle-right'}})",
     "intro": "ui.Panel([ui.Label({value: '____________________________________________', style:{fontWeight:'bold', color:'4A997E'}}), ui.Label({value:'Select layers to display.', style:{fontSize:'15px', fontWeight:'bold'}})])"
