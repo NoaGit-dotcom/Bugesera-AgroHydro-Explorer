@@ -1,11 +1,11 @@
-# Bugesera-AgroHydro-Explorer
+# Bugesera-SeasonC-Spatial-Sampling & Irrigation-Suitability-Mapping-Tool
 Interactive GEE-based tool for irrigation planning in Bugesera, integrating water, slope, temperature, and survey analysis. Developed for the 2025 Big Data Hackathon by NISR, it maps irrigation suitability and generates stratified survey points for agricultural data collection.
 **NISR 2025 Big Data Hackathon – Track 4: GIS Innovative Challenge**  
 
 ![Google Earth Engine](https://earthengine.google.com/)  
 ![JavaScript](https://code.earthengine.google.com/6be12237e994639c914634372b619be5)   
 ![Hackathon](https://www.statistics.gov.rw/about/hackathon/2025-hackathon-competition)  
-![Live App](https://noahamza64.users.earthengine.app/view/agro-hydro-exproler)  
+![Live App](https://noahamza64.users.earthengine.app/view/bugesera-spatial-sampling--irrigation-suitability-mapping)  
 
 **Live Demo • Overview • Features • Methodology • Usage • Submission**  
 </div>  
@@ -14,18 +14,19 @@ Interactive GEE-based tool for irrigation planning in Bugesera, integrating wate
 
 ## 🚀 Live Demo  
 **🌐 Published Application:**  
-👉 [Bugesera AgroHydro Explorer](https://noahamza64.users.earthengine.app/view/agro-hydro-exproler)  
+👉 [Bugesera Spatial sampling & Irrigation Suitability Mapping](https://noahamza64.users.earthengine.app/view/bugesera-spatial-sampling--irrigation-suitability-mapping)  
 
 **Quick Start:**  
 1. Click the live link above (runs directly in your browser).  
 2. Allow **30–60 seconds** for initial loading.  
 3. Explore the interactive dashboard using the control panel on the right.  
-4. No installation required – cloud-hosted on Google Earth Engine.  
+4. No installation required – cloud-hosted on Google Earth Engine. 
+5. 
 
 ---
 
 ## 📖 Overview  
-The Bugesera AgroHydro Explorer is an interactive GIS tool built for Track 4: GIS Innovative Challenge of the **NISR 2025 Big Data Hackathon.  
+The Bugesera Spatial sampling & Irrigation Suitability Mapping is an interactive GIS tool built for Track 4: GIS Innovative Challenge of the **NISR 2025 Big Data Hackathon.  
 
 It addresses the challenge of building spatial sampling frames for agricultural survey data collection in **Season C crop production within Bugesera District, Rwanda.  
 
@@ -54,7 +55,7 @@ This solution empowers policymakers, agricultural planners, and survey teams wit
 - ✅ Geospatial stratification using slope, water availability & temperature.  
 - ✅ Interactive dashboard for real-time suitability analysis.  
 - ✅ Automated spatial sampling (100 stratified points).  
-- ✅ Field-ready exports (CSV, visual maps).  
+- ✅ Field-ready Download (CSV File).  
 - ✅ Scalable to other districts & seasons.  
 
 ---
@@ -179,7 +180,7 @@ var suitability = slopeFilled.multiply(0.4)        // Slope (40%)
 
 ## 📞 Support & Contact  
 
-- 🌐 Live Application: [Bugesera AgroHydro Explorer](https://noahamza64.users.earthengine.app/view/agro-hydro-exproler)  
+- 🌐 Live Application: [Bugesera Spatial sampling & Irrigation Suitability Mapping](https://noahamza64.users.earthengine.app/view/bugesera-spatial-sampling--irrigation-suitability-mapping)  
 - 📧 Contact: [noahamza64@gmail.com]  
 - 📄 Documentation: Available in repository  
 
